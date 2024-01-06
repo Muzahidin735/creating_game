@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <xinput.h>
 #include <stdint.h>
+#include <dsound.h>
 #define internal   static
 #define  local_persist static 
 #define global_variable  static 
@@ -33,6 +34,67 @@ struct win32_window_dimension
   int width;
   int height;
 };
+
+#define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
+typedef DIRECT_SOUND_CREATE(direct_sound_create);
+
+internal void
+win32InitDSound(HWND window, int32 SamplePerSecond,int32 BufferSize)
+{
+  HMODULE DsoundLibrary = LoadLibraryA("dsound.dll");
+
+  if (DsoundLibrary)
+  {
+   direct_sound_create *DirectSoundCreate =  (direct_sound_create *)GetProcAddress(DsoundLibrary, "DirectSoundCreate");
+
+   LPDIRECTSOUND DirectSound;
+   if (DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &DirectSound, 0)))
+   {
+      if(SUCCEEDED(DirectSound->SetCooperativeLevel(window, DSSCL_PRIORITY)))
+      {
+        BUFFERDESC BufferDescription = {};
+        BufferDescription.dwSize  = sizeof(BufferDescription);
+        BufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
+
+        LPDIRECTSOUNDBUFFER PrimaryBuffer;
+        if (SUCCEEDED(CreateSoundBuffer(&BufferDescription, &PrimaryBuffer, 0)))
+        {
+          WAVEFORMATEX WaveFormat = {};
+          WaveFormat.wFormatTag = WAVE_FORMAT_PCM;
+          WaveFormat.nChannels = 2;
+          WaveFormat.nSamplesPerSec = SamplePerSecond;
+          WaveFormat.wBitsPerSample = 16 ;
+          WaveFormat.nBlockAlign = (WaveFormat.nChannels * WaveFormat.wBitsPerSample) / 8;
+          WaveFormat.nAvgBytesPerSec = WaveFormat.nSamplesPerSec * WaveFormat.nBlockAlign;
+          WaveFormat.cbSize = 0;
+
+          if (SUCCEEDED(PrimaryBuffer->SetFormat(&WaveFormat)))
+          {
+
+          }
+          else
+          {
+
+          }
+
+        }
+        else
+        {
+          
+        }
+      }
+      else
+      {
+
+      }
+      BufferDescription.dwBufferBytes = BufferSize;
+   }
+   else
+   {
+
+   }
+  }
+}
 
 win32_window_dimension GetWindowDimension(HWND window)
 {
@@ -195,6 +257,7 @@ int  CALLBACK WinMain(
       {
         int Xoffset = 0;
         int Yoffset = 0;
+        //win32InitDSound();
         running = true;
         while(running)
         {
